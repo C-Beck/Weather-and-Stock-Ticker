@@ -3,7 +3,13 @@
 #include <string.h>
 #include <curl/curl.h>
 
-int getIdents(char *idents[])
+struct ident{
+	int old_time;
+	int new_time;
+	char code[5];
+};
+
+int getIdents(struct ident idents[])
 {
     int numIdents = 0;
     FILE *fp;
@@ -23,13 +29,13 @@ int getIdents(char *idents[])
 	    {
 		    in[strcspn(in, "\n")] = 0;
 		    //printf("%s\n",in);
-		    idents[i]=malloc(5);
-		    strncpy(idents[i],in,5);
+		    //idents[i]=malloc(5);
+		    strncpy(idents[i].code,in,5);
 		    i++;
 	    }
 	    for(int j=0; j<numIdents; j++)
 	    {
-		    printf("%s\n",idents[j]);
+		    printf("%s\n",idents[j].code);
 	    }
 	    int ret = fclose(fp);
     }
@@ -39,9 +45,14 @@ int getIdents(char *idents[])
     return(numIdents);
 }
 
+char *getXML(struct ident idents[], char *rawXML)
+{
+    return rawXML;
+}
+
 int main()
 {
-    char *idents[64];
+    struct ident idents[64];
     int numIdents = getIdents(idents);
     
 }
