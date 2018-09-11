@@ -47,12 +47,29 @@ int getIdents(struct ident idents[])
 
 char *getXML(struct ident idents[], char *rawXML)
 {
-    return rawXML;
+	curl_global_init(CURL_GLOBAL_NOTHING);
+	CURL *curl = curl_easy_init();
+	if(curl)
+	{
+		CURLcode res;
+		curl_easy_setopt(curl,CURLOPT_URL,"https://aviationweather.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&stationString=KRDU,KGSO,KINT&hoursBeforeNow=1");
+		res = curl_easy_perform(curl);
+		if(res!=0)
+		{
+			printf("ERROR\n");
+		}
+		curl_easy_cleanup(curl);
+	}
+	else{printf("ERROR\n");}
+	curl_global_cleanup();
+    	return rawXML;
 }
 
 int main()
 {
     struct ident idents[64];
     int numIdents = getIdents(idents);
-    
+    char *rawXML;
+    getXML(idents,rawXML);
+    return 0;
 }
