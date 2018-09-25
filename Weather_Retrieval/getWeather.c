@@ -73,13 +73,31 @@ int getIdents(struct ident idents[])
     return(numIdents);
 }
 
-struct MemoryStruct getXML(struct ident idents[], struct MemoryStruct chunk)
+struct MemoryStruct getXML(struct ident idents[], int numIdents, struct MemoryStruct chunk)
 {
+	char *head = "https://aviationweather.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&stationString=";
+	char *tail = "&hoursBeforeNow=1";
+	char *url = malloc(strlen(head));
+	strcpy(url,head);
+	for(int i=0; i< numIdents;i++)
+	{
+		url = (char *)realloc(url,strlen(url)+5);
+		strcat(url,idents[i].code);
+		if(i<numIdents-1)
+		{
+			strcat(url,",");
+		}
+	}
+	url=(char *)realloc(url,strlen(url)+strlen(tail));
+	strcat(url,tail);
+
+	printf("%s\n",url);
+
 	SSL_library_init();
 	curl_global_init(CURL_GLOBAL_NOTHING);
 	CURL *curl = curl_easy_init();
 	CURLcode res;
-	curl_easy_setopt(curl,CURLOPT_URL,"https://aviationweather.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&stationString=KRDU,KGSO,KINT&hoursBeforeNow=1");
+	curl_easy_setopt(curl,CURLOPT_URL,url);
 	curl_easy_setopt(curl,CURLOPT_HTTPGET,1);
 //	curl_easy_setopt(curl,CURLOPT_VERBOSE,1);
 	curl_easy_setopt(curl,CURLOPT_SSL_VERIFYHOST,2);
@@ -93,38 +111,51 @@ struct MemoryStruct getXML(struct ident idents[], struct MemoryStruct chunk)
 	}
 	curl_easy_cleanup(curl);
 	curl_global_cleanup();
+	free(url);
     	return chunk;
 }
 
-int parseXML(char *var, char *out)
+char * parseXML(char *var, char *out)
 {
 	char *sub = strstr(var,"<raw_text>");
 	int len = 0;
+//	printf("%d\n",strlen(out));
 	while(sub!=NULL)
 	{
 		sub=strstr(sub,">")+1;
+//		printf("%s\n",sub);
 		len=strstr(sub,"<")-sub;
-		out = realloc(out,strlen(out)+len);
+//		printf("%d\n",len);
+		out = (char *)realloc(out,strlen(out)+len+1);
 		strncat(out,sub,len);
+		strcat(out,"\n");
+//		printf("%d\n",strlen(out));
 		sub=strstr(sub,"<raw_text>");
 	}
+	out = (char *)realloc(out,strlen(out)+1);
+	strcat(out,"\x00");
+//	printf("%s\n",out);
+	return(out);
 }
 
 int main()
 {
-    struct ident idents[64];
-    int numIdents = getIdents(idents);
-    char *output = malloc(1);
-    struct MemoryStruct chunk;
-    chunk.memory=malloc(1);
-    chunk.size=0;
-    chunk=getXML(idents,chunk);
-    if(chunk.size!=0)
-    {
-	    printf("%lu bytes retrieved\n", (unsigned long)chunk.size);
-	    printf("%s\n",chunk.memory);
-	    parseXML(chunk.memory,output);
-	    printf("%s\n",output);
-    }
-    return 0;
+	struct ident idents[64];
+	int numIdents = getIdents(idents);
+	char *output = malloc(1);
+	strcpy(output,"");
+//	printf("%d\n",strlen(output));
+	struct MemoryStruct chunk;
+	chunk.memory=malloc(1);
+	chunk.size=0;
+	chunk=getXML(idents,numIdents,chunk);
+	if(chunk.size!=0)
+	{
+//		printf("%lu bytes retrieved\n", (unsigned long)chunk.size);
+//		printf("%s\n",chunk.memory);
+		output = parseXML(chunk.memory,output);
+		printf("%s\n",output);
+	}
+	free(output);
+	return 0;
 }
